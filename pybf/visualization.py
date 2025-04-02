@@ -17,6 +17,7 @@
    limitations under the License.
 """
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -292,6 +293,7 @@ class LivePlot:
                  scatters_coords_xz=None,
                  elements_coords_xz=None,
                  title=None,
+                 title_fps=True,
                  image_x_range=None,
                  image_z_range=None,
                  db_range=40,
@@ -311,6 +313,10 @@ class LivePlot:
         # Update title
         self.title = self.title + ' (dB scale)'
 
+        self.title_fps = title_fps
+        if self.title_fps:
+            self.title = self.title + ' [0.00 FPS]'
+
         self.scatters_coords_xz = scatters_coords_xz
         self.elements_coords_xz = elements_coords_xz
 
@@ -320,6 +326,8 @@ class LivePlot:
         self._fig, self._ax = plt.subplots(1, 1,figsize=(10,10))
 
         self._plot_initial_figure()
+
+        self._last_time = time.time()
 
     # Plot scatters coordinates, transducer elements and sample data
     def _plot_initial_figure(self):
@@ -369,6 +377,16 @@ class LivePlot:
         data_db = log_compress(img_data, self.db_range)
 
         self._image_obj.set_data(data_db)
+
+        if self.title_fps:
+            current_time = time.time()
+            elapsed_time = current_time - self._last_time
+            self._last_time = current_time
+
+            fps = 1 / elapsed_time
+            self.title = self.title.split('[')[0] + f"[{fps:.2f} FPS]"
+
+            self._ax.set_title(self.title)
 
         # Plot the figure with updated data
         plt.draw()
