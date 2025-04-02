@@ -17,17 +17,12 @@
    limitations under the License.
 """
 
-import matplotlib
-# matplotlib.use('QT4Agg')
-from matplotlib import colors, cm, pyplot as plt
-from matplotlib.patches import Rectangle
-
-import plotly as py
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default = "browser"
-
-import numpy as np
 
 # Constants
 PLOTLY_SCALE_FACTOR = 2
@@ -56,8 +51,8 @@ def log_compress(image, db_range, reference_max=None):
     # Truncate
     image_log[image_log < (-db_range)] = -db_range
 
-    print("BF Final dB range ({:2.1f},{:2.1f})".format(image_log.min(),
-                                                       image_log.max()))
+    # print("BF Final dB range ({:2.1f},{:2.1f})".format(image_log.min(),
+    #                                                    image_log.max()))
     return image_log
 
 # Plot one trace
@@ -83,7 +78,7 @@ def plot_trace(rf_data,
         title = " "
 
     # Choose framework
-    if framework is 'matplotlib':
+    if framework == 'matplotlib':
 
         fig, ax = plt.subplots(1, 1,figsize=(10,10))
 
@@ -102,7 +97,7 @@ def plot_trace(rf_data,
                         dpi=300, 
                         bbox_inches='tight')
 
-    elif framework is 'plotly':
+    elif framework == 'plotly':
 
         # Create plot
         fig = go.Figure()
@@ -158,7 +153,7 @@ def plot_image(img_data,
         data=img_data
 
     # Choose framework
-    if framework is 'matplotlib':
+    if framework == 'matplotlib':
         if latex_args is not None:
             from matplotlib import rc
             rc('font',**{'family':'serif'})
@@ -216,7 +211,7 @@ def plot_image(img_data,
             else:
                 fig.savefig(path_to_save + title + '.pdf', bbox_inches='tight', dpi=600)
 
-    elif framework is 'plotly':
+    elif framework == 'plotly':
 
         ax = None
 
@@ -378,3 +373,13 @@ class LivePlot:
         # Plot the figure with updated data
         plt.draw()
         plt.pause(.001)
+
+        # return if user pressed 'q' key
+        return self._check_for_quit()
+
+    def _check_for_quit(self):
+        pressed = plt.waitforbuttonpress(0.1)
+        if pressed:
+            return True
+
+        return False
