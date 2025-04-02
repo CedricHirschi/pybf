@@ -154,11 +154,12 @@ class BFCartesianRealTime():
         return rf_data_proc
 
         # Beamform the data using selected BF-core
-    def beamform(self, rf_data, numba_active=False):
+    def beamform(self, rf_data, numba_active=False, do_print=False):
 
-        print('Beamforming...')
-        print (' ')
-        start_time = time.time()
+        if do_print:
+            print('Beamforming...')
+            print (' ')
+            start_time = time.time()
 
         acqs_to_process = [x for x in range(self._tx_delays_samples.shape[0])]
 
@@ -199,7 +200,7 @@ class BFCartesianRealTime():
         # Coherent compounding
         das_out_compound = np.sum(das_out[acqs_to_process, :], axis = 0)
 
-        # Print execution time
-        print('Time of execution: %s seconds' % (time.time() - start_time))
+        if do_print:
+            print('Beamforming time: %s seconds' % (time.time() - start_time))
 
         return das_out_compound.reshape(self._image_res[1], self._image_res[0])
