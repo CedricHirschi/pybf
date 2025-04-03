@@ -61,7 +61,9 @@ class BFCartesianRealTime():
                  envelope_detector='I_Q',
                  picmus_dataset=False,
                  channel_reduction=None,
-                 is_inherited=False):
+                 is_inherited=False,
+                 do_print=False,
+                 ):
 
         # 1 Specify transducer object
         self._transducer = transducer_obj
@@ -75,14 +77,16 @@ class BFCartesianRealTime():
         self._pixels_coords = self._img_config.get_pixels_coords(image_res[0], image_res[1])
 
         # 3 Precalculate delays
-        print('Delays precalculation...')
+        if do_print:
+            print('Delays precalculation...')
         self._tx_strategy = tx_strategy
         self._rx_delays, self._tx_delays = calc_propagation_delays(self._tx_strategy,
                                                                    self._transducer.num_of_elements,
                                                                    self._transducer.elements_coords,
                                                                    self._pixels_coords,
                                                                    self._transducer.speed_of_sound,
-                                                                   simulation_flag=picmus_dataset)
+                                                                   simulation_flag=picmus_dataset,
+                                                                   do_print=do_print)
 
         # Calculate final sampling rate for preprocessed data
         self._f_sampling = f_sampling
@@ -112,7 +116,8 @@ class BFCartesianRealTime():
 
         # 4 Calculate Apodization
         if is_inherited is False:
-            print('Apodization precalculation...')
+            if do_print:
+                print('Apodization precalculation...')
             self._apod = calc_fov_receive_apodization(int(self._transducer.num_of_elements), 
                                                     self._transducer.elements_coords, 
                                                     self._pixels_coords,

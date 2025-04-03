@@ -18,12 +18,23 @@
 """
 
 import time
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default = "browser"
+
+warnings.filterwarnings(
+    "ignore",
+    "Starting a Matplotlib GUI outside of the main thread will likely fail."
+)
+
+warnings.filterwarnings(
+    "ignore",
+    "divide by zero encountered in log10"
+)
 
 # Constants
 PLOTLY_SCALE_FACTOR = 2
@@ -370,7 +381,7 @@ class LivePlot:
         self._ax.set_title(self.title)
 
         self._ax.invert_yaxis()
-        self._ax.legend()
+        # self._ax.legend()
 
     def update_the_figure(self, img_data):
 

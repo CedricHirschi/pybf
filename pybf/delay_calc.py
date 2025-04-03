@@ -24,7 +24,9 @@ def calc_propagation_delays(tx_strategy,
                             elements_coords, 
                             pixels_coords, 
                             speed_of_sound,
-                            simulation_flag = False):
+                            simulation_flag = False,
+                            do_print = False,
+                            ):
 
     # Calculate the number of channels for given data
     num_of_elements = elements_coords.shape[1]
@@ -48,9 +50,10 @@ def calc_propagation_delays(tx_strategy,
         max_angle = float(tx_strat_name[2])
 
         # Print info
-        print('TX strategy: plane waves')
-        print('Number of plane waves: ', num_of_pw)
-        print('Maximum angle: ', max_angle, '°')
+        if do_print:
+            print('TX strategy: plane waves')
+            print('Number of plane waves: ', num_of_pw)
+            print('Maximum angle: ', max_angle, '°')
 
         # Calculate angles
         pw_angles_rad = np.radians(np.linspace(-max_angle, max_angle, num_of_pw))
