@@ -65,9 +65,8 @@ class ImageSettings:
         n_z = n_z.astype(int).item()
 
         self._high_resolution = (n_x, n_z)
-        print('The highest resolution for the system is: ', self._high_resolution)
 
-        return
+        return self._high_resolution
 
 
     def get_pixels_coords(self, x_res=None, z_res=None):

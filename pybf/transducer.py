@@ -81,11 +81,12 @@ class Transducer:
 
     # Set the active elements of the transducer by list of indices
     # Attention: elements numeration starts from 0
-    def set_active_elements(self, active_elements):
+    def set_active_elements(self, active_elements, do_print=False):
 
         self._active_elements = np.array(active_elements, dtype=int)
 
-        print('Transducer: number of active elements = ', len(active_elements))
+        if do_print:
+            print('Transducer: number of active elements = ', len(active_elements))
 
         # Calculate X, Y coordinates of transducer elements
         self._calc_elements_coords()
