@@ -71,12 +71,12 @@ class ImageSettings:
 
     def get_pixels_coords(self, x_res=None, z_res=None):
         
-        if x_res != None:
+        if x_res is not None:
             n_x = x_res
         else:
             n_x = self._high_resolution[0]
 
-        if z_res != None:
+        if z_res is not None:
             n_z = z_res
         else:
             n_z = self._high_resolution[1]
@@ -92,3 +92,6 @@ class ImageSettings:
         self._pixels_coords = np.transpose(np.dstack(np.meshgrid(x_coords, z_coords)).reshape(-1, 2))
 
         return self._pixels_coords
+    
+    def get_max_resolution(self):
+        return self._high_resolution
