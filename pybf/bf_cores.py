@@ -21,10 +21,14 @@ import numpy as np
 from numba import jit, prange
 import cupy as cp
 import warp as wp
+# import taichi as ti
+# import taichi.math as tm
 
 
 # Initialize Warp
 wp.init()
+# # Initialize Taichi
+# ti.init(arch=ti.gpu, fast_math=True, kernel_profiler=True)
 
 
 # Perform delay and sum operation with numba
@@ -162,18 +166,18 @@ def delay_and_sum_cupy(rf_data_in, delays_idx, apod_weights=None):
 # Warp kernel for Delay-and-Sum (DAS)
 @wp.kernel
 def das_warp_kernel(
-    rf_real: wp.array2d(dtype=float),  # (n_samples, n_elements)
-    rf_imag: wp.array2d(dtype=float),  # (n_samples, n_elements)
-    delays: wp.array3d(dtype=int),  # (n_modes, n_elements, n_points)
-    apo: wp.array2d(dtype=float),  # (n_points, n_elements)
-    out_real: wp.array2d(dtype=float),  # (n_modes, n_points)
-    out_imag: wp.array2d(dtype=float),  # (n_modes, n_points)
+    rf_real: wp.array2d(dtype=float),  # (n_samples, n_elements) # type: ignore
+    rf_imag: wp.array2d(dtype=float),  # (n_samples, n_elements) # type: ignore
+    delays: wp.array3d(dtype=int),  # (n_modes, n_elements, n_points) # type: ignore
+    apo: wp.array2d(dtype=float),  # (n_points, n_elements) # type: ignore
+    out_real: wp.array2d(dtype=float),  # (n_modes, n_points) # type: ignore
+    out_imag: wp.array2d(dtype=float),  # (n_modes, n_points) # type: ignore
     n_samples: int,
     n_elements: int,
     use_apo: bool,
 ):
     # Get 2D thread indices
-    mode, pt = wp.tid()
+    mode, pt = wp.tid()  # type: ignore
 
     acc_r = float(0.0)
     acc_i = float(0.0)
@@ -244,3 +248,147 @@ def delay_and_sum_warp(rf_data_in, delays_idx, apod_weights=None):
     real = out_r.numpy().astype(np.float32)
     imag = out_i.numpy().astype(np.float32)
     return (real + 1j * imag).astype(np.complex64)
+
+
+# ti_rf = ti.Vector.field(2, dtype=ti.f16, shape=(1, 1))
+# ti_delay = ti.field(dtype=ti.i32, shape=(1, 1, 1))
+# ti_apo = ti.field(dtype=ti.f16, shape=(1, 1))
+# ti_out = ti.Vector.field(2, dtype=ti.f16, shape=(1, 1))
+
+# ti_max_idx: int = 0
+# ti_nelem: int = 0
+# ti_nmodes: int = 0
+# ti_npts: int = 0
+
+
+# @ti.kernel
+# def _das_unweighted_kernel():
+#     # for i in range(ti_nmodes):
+#     #     for j in range(ti_npts):
+#     #         for k in range(ti_nelem):
+#     #             idx = ti_delay[i, k, j]
+#     #             if idx <= ti_max_idx:
+#     #                 ti_out[i, j] += ti_rf[idx, k]
+#     # flatten (mode,point) → a single index p
+
+#     # ti.loop_config(parallelize=16)
+#     # for p in range(ti_nmodes * ti_npts):
+#     #     mode = p // ti_npts
+#     #     pt = p % ti_npts
+#     #     acc = ti.Vector([0.0, 0.0])
+#     #     # sum over elements
+#     #     for e in range(ti_nelem):
+#     #         idx = ti_delay[mode, e, pt]
+#     #         if idx <= ti_max_idx:
+#     #             acc += ti_rf[idx, e]
+#     #     ti_out[mode, pt] = acc
+
+#     # expose a 2D grid of (mode, pt)
+#     for mode, pt in ti.ndrange(ti_nmodes, ti_npts):
+#         acc = ti.Vector([0.0, 0.0])
+#         # unroll over a small, fixed number of elements
+#         for e in ti.static(range(ti_nelem)):
+#             idx = ti_delay[mode, e, pt]
+#             if idx <= ti_max_idx:
+#                 # coalesced load from ti_rf[e, idx]
+#                 acc += ti_rf[e, idx]
+#         ti_out[mode, pt] = acc
+
+
+# @ti.kernel
+# def _das_weighted_kernel():
+#     # for i in range(ti_nmodes):
+#     #     for j in range(ti_npts):
+#     #         for k in range(ti_nelem):
+#     #             idx = ti_delay[i, k, j]
+#     #             if idx <= ti_max_idx:
+#     #                 w = ti_apo[j, k]
+#     #                 ti_out[i, j] += ti_rf[idx, k] * w
+
+#     # ti.loop_config(parallelize=16)
+#     # for p in range(ti_nmodes * ti_npts):
+#     #     mode = p // ti_npts
+#     #     pt = p % ti_npts
+#     #     acc = ti.Vector([0.0, 0.0])
+#     #     for e in range(ti_nelem):
+#     #         idx = ti_delay[mode, e, pt]
+#     #         if idx <= ti_max_idx:
+#     #             w = ti_apo[pt, e]
+#     #             acc += ti_rf[idx, e] * w
+#     #     ti_out[mode, pt] = acc
+
+#     for mode, pt in ti.ndrange(ti_nmodes, ti_npts):
+#         acc = ti.Vector([0.0, 0.0])
+#         # unroll over a small, fixed number of elements
+#         for e in ti.static(range(ti_nelem)):
+#             idx = ti_delay[mode, e, pt]
+#             if idx <= ti_max_idx:
+#                 # coalesced load from ti_rf[e, idx]
+#                 acc += ti_rf[e, idx] * ti_apo[pt, e]
+#         ti_out[mode, pt] = acc
+
+
+# def delay_and_sum_taichi(
+#     rf_data_in: np.ndarray,
+#     delays_idx: np.ndarray,
+#     apod_weights: np.ndarray | None = None,
+# ):
+#     # print("Preparing Taichi arrays for delay and sum...")
+#     # time_start = time.perf_counter()
+#     n_samples, n_elements = rf_data_in.shape
+#     n_modes, _, n_points = delays_idx.shape
+
+#     global ti_rf, ti_delay, ti_apo, ti_out
+
+#     # pack complex into last axis
+#     rf_mat = np.stack([rf_data_in.real, rf_data_in.imag], axis=-1)
+#     # transpose so shape=(n_elements, n_samples, 2) for coalescing
+#     rf_mat_t = rf_mat.transpose(1, 0, 2)
+
+#     if ti_rf.shape != (n_elements, n_samples):
+#         # store as f16 to reduce bandwidth; cast back in‐kernel
+#         print("Allocating new ti_rf array with shape:", (n_elements, n_samples))
+#         ti_rf = ti.Vector.field(2, dtype=ti.f16, shape=(n_elements, n_samples))
+#     ti_rf.from_numpy(rf_mat_t.astype(np.float16))
+
+#     if ti_delay.shape != (n_modes, n_elements, n_points):
+#         print(
+#             "Allocating new ti_delay array with shape:", (n_modes, n_elements, n_points)
+#         )
+#         ti_delay = ti.field(dtype=ti.i32, shape=(n_modes, n_elements, n_points))
+#     ti_delay.from_numpy(delays_idx.astype(np.int32))
+
+#     if apod_weights is not None:
+#         if ti_apo.shape != (n_points, n_elements):
+#             print("Allocating new ti_apo array with shape:", (n_points, n_elements))
+#             ti_apo = ti.field(dtype=ti.f16, shape=(n_points, n_elements))
+#         ti_apo.from_numpy(apod_weights.astype(np.float16))
+
+#     if ti_out.shape != (n_modes, n_points):
+#         print("Allocating new ti_out array with shape:", (n_modes, n_points))
+#         ti_out = ti.Vector.field(2, dtype=ti.f16, shape=(n_modes, n_points))
+
+#     global ti_max_idx, ti_nelem, ti_nmodes, ti_npts
+
+#     ti_max_idx = n_samples - 1
+#     ti_nelem = n_elements
+#     ti_nmodes = n_modes
+#     ti_npts = n_points
+
+#     # print(f"  {(time.perf_counter() - time_start) * 1e3:.2f} ms")
+#     # time_start = time.perf_counter()
+
+#     if ti_apo is not None:
+#         # print("Starting Taichi weighted delay and sum kernel...")
+#         _das_weighted_kernel()
+#     else:
+#         # print("Starting Taichi unweighted delay and sum kernel...")
+#         _das_unweighted_kernel()
+
+#     ti.sync()  # ensure all operations are done
+#     # print(f"  {(time.perf_counter() - time_start) * 1e3:.2f} ms")
+#     ti.profiler.print_kernel_profiler_info("trace")
+#     ti.profiler.clear_kernel_profiler_info()
+
+#     out_np = ti_out.to_numpy()  # (modes, points, 2)
+#     return out_np[..., 0] + 1j * out_np[..., 1]
