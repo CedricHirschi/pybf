@@ -26,7 +26,7 @@ import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default = "browser"
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 
 warnings.filterwarnings(
     "ignore",

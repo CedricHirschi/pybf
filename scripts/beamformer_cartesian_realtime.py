@@ -295,7 +295,7 @@ class BFCartesianRealTime:
         # Coherent compounding
         das_out_compound = np.sum(das_out[acqs_to_process, :], axis=0)
 
-        # Print execution time
-        print("Time of execution: %s seconds" % (time.time() - start_time))
+        if do_print:
+            print("Time of execution: %s seconds" % (time.time() - start_time))
 
         return das_out_compound.reshape(self._image_res[1], self._image_res[0])
