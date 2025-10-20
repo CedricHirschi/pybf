@@ -83,7 +83,7 @@ class Transducer:
     # Attention: elements numeration starts from 0
     def set_active_elements(self, active_elements):
 
-        self._active_elements = np.array(active_elements, dtype=np.int)
+        self._active_elements = np.array(active_elements, dtype=int)
 
         print('Transducer: number of active elements = ', len(active_elements))
 

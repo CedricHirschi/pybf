@@ -58,11 +58,11 @@ class ImageSettings:
 
         # Calculate number of x pixels
         n_x = np.round(self._image_size_x / self._transducer._x_pitch * self._lat_pixel_density)
-        n_x = n_x.astype(np.int).item()
+        n_x = n_x.astype(int).item()
 
         # Calculate number of z pixels
         n_z = np.round(self._image_size_z / self._axial_res_min)
-        n_z = n_z.astype(np.int).item()
+        n_z = n_z.astype(int).item()
 
         self._high_resolution = (n_x, n_z)
         print('The highest resolution for the system is: ', self._high_resolution)
