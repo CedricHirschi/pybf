@@ -19,31 +19,24 @@ limitations under the License.
 
 # Basic libraries
 import numpy as np
-from os.path import dirname, abspath
-import sys
 import time
 
-import taichi as ti
-
 # Import pybf modules
-from pybf.pybf.io_interfaces import ImageSaver
-from pybf.pybf.image_settings import ImageSettings
-from pybf.pybf.delay_calc import calc_propagation_delays
-from pybf.pybf.delay_calc import convert_time_to_samples
-from pybf.pybf.apodization import calc_fov_receive_apodization
-from pybf.pybf.signal_processing import demodulate_decimate
-from pybf.pybf.signal_processing import interpolate_modulate
-from pybf.pybf.signal_processing import filter_band_pass
-from pybf.pybf.signal_processing import hilbert_interpolate
+from pybf.delay_calc import calc_propagation_delays
+from pybf.delay_calc import convert_time_to_samples
+from pybf.apodization import calc_fov_receive_apodization
+from pybf.signal_processing import demodulate_decimate
+from pybf.signal_processing import interpolate_modulate
+from pybf.signal_processing import filter_band_pass
+from pybf.signal_processing import hilbert_interpolate
 
-from pybf.pybf.bf_cores import (
+from pybf.bf_cores import (
     delay_and_sum_numba,
     delay_and_sum_numpy,
     delay_and_sum_cupy,
     delay_and_sum_warp,
-    # delay_and_sum_taichi,
+    HAS_CUPY,
 )
-from pybf.scripts.visualize_image_dataset import visualize_image_dataset
 
 # Constants
 LATERAL_PIXEL_DENSITY_DEFAULT = 5
@@ -55,10 +48,11 @@ IMAGE_RESOLUTION_DEFAULT = [100, 100]
 bf_cores = {
     "numba": delay_and_sum_numba,
     "numpy": delay_and_sum_numpy,
-    "cupy": delay_and_sum_cupy,
     "warp": delay_and_sum_warp,
-    # "taichi": delay_and_sum_taichi,
 }
+
+if HAS_CUPY:
+    bf_cores["cupy"] = delay_and_sum_cupy
 
 
 class BFCartesianRealTime:
@@ -81,7 +75,6 @@ class BFCartesianRealTime:
         channel_reduction=None,
         is_inherited=False,
         do_print=False,
-        init_taichi=False,
         max_samples=None,
     ):
         # 1 Specify transducer object
@@ -156,24 +149,6 @@ class BFCartesianRealTime:
         self._bp_filter_params = bp_filter_params
         self._envelope_detector = envelope_detector
 
-        # Preallocate taichi fields
-        if init_taichi:
-            ti.init(arch=ti.gpu, fast_math=True)
-
-            print(self._tx_delays_samples.shape)
-
-            self.n_modes, self.n_elem, self.n_pts = self._tx_delays_samples.shape
-
-            self.dev_rf = ti.Vector.field(2, ti.f16, shape=(self.n_elem, max_samples))
-            self.dev_delay = ti.field(
-                ti.i32, shape=(self.n_modes, self.n_elem, max_samples)
-            )
-            self.dev_apo = ti.field(ti.f16, shape=(self.n_pts, self.n_elem))
-            self.dev_out = ti.Vector.field(2, ti.f16, shape=(self.n_modes, self.n_pts))
-
-            self.dev_delay.from_numpy(self._tx_delays_samples)
-            self.dev_apo.from_numpy(self._apod.astype(np.float16))
-
     # Data preprocessing function
     # Demodulate decimate
     def _preprocess_data(self, rf_data):
@@ -209,23 +184,6 @@ class BFCartesianRealTime:
             )
 
         return rf_data_proc
-
-    @ti.kernel
-    def _das_kernel(self, n_samp: ti.i32):
-        # 16×16 blocks → many more concurrent blocks
-        ti.block_dim(16, 16)
-        for m, p in ti.ndrange(self.n_modes, self.n_pts):
-            acc_re = 0.0
-            acc_im = 0.0
-            for e in range(self.n_elem):
-                idx = self.dev_delay[m, e, p]
-                if idx < n_samp:
-                    rf = self.dev_rf[e, idx]  # half‐precision load
-                    w = self.dev_apo[p, e]  # half‐precision apod
-                    # cast to f32 on the fly, accumulate
-                    acc_re += float(rf[0]) * float(w)
-                    acc_im += float(rf[1]) * float(w)
-            self.dev_out[m, p] = ti.Vector([acc_re, acc_im])
 
     def beamform(self, rf_data, core_type="numpy", do_print=False):
         if core_type not in bf_cores:
@@ -267,30 +225,11 @@ class BFCartesianRealTime:
             delays_samples = self._rx_delays_samples + self._tx_delays_samples[i, :]
 
             # Make delay and sum operation + apodization
-            if core_type != "taichi":
-                das_out[i, :] = bf_cores[core_type](
-                    rf_data_proc_trans,
-                    delays_samples.reshape(1, delays_samples.shape[0], -1),
-                    apod_weights=self._apod,
-                )
-            else:
-                n_samp, _ = rf_data_proc_trans.shape
-                mat = (
-                    np.stack(
-                        [rf_data_proc_trans.real, rf_data_proc_trans.imag], axis=-1
-                    )
-                    .astype(np.float16)
-                    .transpose(1, 0, 2)
-                )
-
-                self.dev_rf.from_numpy(mat)
-
-                self._das_kernel(n_samp)
-                ti.sync()
-
-                out = self.dev_out.to_numpy()
-
-                das_out[i, :] = out[0, :, 0] + 1j * out[0, :, 1]
+            das_out[i, :] = bf_cores[core_type](
+                rf_data_proc_trans,
+                delays_samples.reshape(1, delays_samples.shape[0], -1),
+                apod_weights=self._apod,
+            )
 
         # Coherent compounding
         das_out_compound = np.sum(das_out[acqs_to_process, :], axis=0)

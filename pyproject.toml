@@ -1,0 +1,48 @@
+[project]
+name = "pybf"
+version = "0.1.0"
+description = "A project named pybf"
+requires-python = ">=3.14"
+dependencies = [
+    "h5py>=3.16.0",
+    "matplotlib>=3.10.8",
+    "numba>=0.65.0",
+    "numpy>=2.4.4",
+    "plotly>=6.6.0",
+    "scipy>=1.17.1",
+    "warp-lang>=1.12.1",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.9",
+    "ty>=0.0.29",
+]
+gpu = [
+    "cupy>=14.0.1",
+]
+all = [
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.9",
+    "ty>=0.0.29",
+    "cupy>=14.0.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+# Force sequential execution (disable any parallel plugins)
+addopts = [
+    "--tb=short",       # Shorter traceback format
+    "--strict-markers", # Require markers to be defined
+]
+# Ensure no parallel execution
+testpaths = ["test"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
