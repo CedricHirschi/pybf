@@ -17,17 +17,26 @@
    limitations under the License.
 """
 
+import time
+import warnings
+import numpy as np
 import matplotlib
-# matplotlib.use('QT4Agg')
-from matplotlib import colors, cm, pyplot as plt
-from matplotlib.patches import Rectangle
-
-import plotly as py
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default = "browser"
+# matplotlib.use("TkAgg")
 
-import numpy as np
+warnings.filterwarnings(
+    "ignore",
+    "Starting a Matplotlib GUI outside of the main thread will likely fail."
+)
+
+warnings.filterwarnings(
+    "ignore",
+    "divide by zero encountered in log10"
+)
 
 # Constants
 PLOTLY_SCALE_FACTOR = 2
@@ -56,8 +65,8 @@ def log_compress(image, db_range, reference_max=None):
     # Truncate
     image_log[image_log < (-db_range)] = -db_range
 
-    print("BF Final dB range ({:2.1f},{:2.1f})".format(image_log.min(),
-                                                       image_log.max()))
+    # print("BF Final dB range ({:2.1f},{:2.1f})".format(image_log.min(),
+    #                                                    image_log.max()))
     return image_log
 
 # Plot one trace
@@ -83,7 +92,7 @@ def plot_trace(rf_data,
         title = " "
 
     # Choose framework
-    if framework is 'matplotlib':
+    if framework == 'matplotlib':
 
         fig, ax = plt.subplots(1, 1,figsize=(10,10))
 
@@ -102,7 +111,7 @@ def plot_trace(rf_data,
                         dpi=300, 
                         bbox_inches='tight')
 
-    elif framework is 'plotly':
+    elif framework == 'plotly':
 
         # Create plot
         fig = go.Figure()
@@ -158,7 +167,7 @@ def plot_image(img_data,
         data=img_data
 
     # Choose framework
-    if framework is 'matplotlib':
+    if framework == 'matplotlib':
         if latex_args is not None:
             from matplotlib import rc
             rc('font',**{'family':'serif'})
@@ -216,7 +225,7 @@ def plot_image(img_data,
             else:
                 fig.savefig(path_to_save + title + '.pdf', bbox_inches='tight', dpi=600)
 
-    elif framework is 'plotly':
+    elif framework == 'plotly':
 
         ax = None
 
@@ -297,6 +306,7 @@ class LivePlot:
                  scatters_coords_xz=None,
                  elements_coords_xz=None,
                  title=None,
+                 title_fps=True,
                  image_x_range=None,
                  image_z_range=None,
                  db_range=40,
@@ -316,6 +326,10 @@ class LivePlot:
         # Update title
         self.title = self.title + ' (dB scale)'
 
+        self.title_fps = title_fps
+        if self.title_fps:
+            self.title = self.title + ' [0.00 FPS]'
+
         self.scatters_coords_xz = scatters_coords_xz
         self.elements_coords_xz = elements_coords_xz
 
@@ -325,6 +339,8 @@ class LivePlot:
         self._fig, self._ax = plt.subplots(1, 1,figsize=(10,10))
 
         self._plot_initial_figure()
+
+        self._last_time = time.time()
 
     # Plot scatters coordinates, transducer elements and sample data
     def _plot_initial_figure(self):
@@ -367,7 +383,7 @@ class LivePlot:
         self._ax.set_title(self.title)
 
         self._ax.invert_yaxis()
-        self._ax.legend()
+        # self._ax.legend()
 
     def update_the_figure(self, img_data):
 
@@ -375,6 +391,26 @@ class LivePlot:
 
         self._image_obj.set_data(data_db)
 
+        if self.title_fps:
+            current_time = time.time()
+            elapsed_time = current_time - self._last_time
+            self._last_time = current_time
+
+            fps = 1 / elapsed_time
+            self.title = self.title.split('[')[0] + f"[{fps:.2f} FPS]"
+
+            self._ax.set_title(self.title)
+
         # Plot the figure with updated data
         plt.draw()
         plt.pause(.001)
+
+        # return if user pressed 'q' key
+        return self._check_for_quit()
+
+    def _check_for_quit(self):
+        pressed = plt.waitforbuttonpress(0.1)
+        if pressed:
+            return True
+
+        return False

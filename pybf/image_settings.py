@@ -58,26 +58,25 @@ class ImageSettings:
 
         # Calculate number of x pixels
         n_x = np.round(self._image_size_x / self._transducer._x_pitch * self._lat_pixel_density)
-        n_x = n_x.astype(np.int).item()
+        n_x = n_x.astype(int).item()
 
         # Calculate number of z pixels
         n_z = np.round(self._image_size_z / self._axial_res_min)
-        n_z = n_z.astype(np.int).item()
+        n_z = n_z.astype(int).item()
 
         self._high_resolution = (n_x, n_z)
-        print('The highest resolution for the system is: ', self._high_resolution)
 
-        return
+        return self._high_resolution
 
 
     def get_pixels_coords(self, x_res=None, z_res=None):
         
-        if x_res != None:
+        if x_res is not None:
             n_x = x_res
         else:
             n_x = self._high_resolution[0]
 
-        if z_res != None:
+        if z_res is not None:
             n_z = z_res
         else:
             n_z = self._high_resolution[1]
@@ -93,3 +92,6 @@ class ImageSettings:
         self._pixels_coords = np.transpose(np.dstack(np.meshgrid(x_coords, z_coords)).reshape(-1, 2))
 
         return self._pixels_coords
+    
+    def get_max_resolution(self):
+        return self._high_resolution
