@@ -1,7 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +18,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
+from typing import Optional
+
 import numpy as np
 
 
@@ -24,12 +29,13 @@ class Hardware:
     # or correction time
     def __init__(
         self,
-        f_sampling_hz,
-        start_time_s,
-        excitation=None,
-        impulse_response=None,
-        correction_time_shift_s=None,
+        f_sampling_hz: float,
+        start_time_s: float,
+        excitation: Optional[np.ndarray] = None,
+        impulse_response: Optional[np.ndarray] = None,
+        correction_time_shift_s: Optional[float] = None,
     ):
+        self.log = logging.getLogger(__name__)
 
         self._f_sampling_hz = f_sampling_hz
         self._start_time_s = start_time_s
@@ -40,8 +46,10 @@ class Hardware:
                 # Copy corrections time
                 self._correction_time_shift_s = correction_time_shift_s
             else:
-                print("Hardware: Not enough data for correction time calculation")
-                print(
+                self.log.error(
+                    "Hardware: Not enough data for correction time calculation"
+                )
+                self.log.info(
                     "Tip: Provide either excitation and impulse_response or correction time"
                 )
         else:
@@ -54,11 +62,9 @@ class Hardware:
             # Calculate time shift
             self._calc_time_shift()
 
-        return
-
     # Calculate time_shift of the system caused by LTI system
     # electrical wave -> acoustic wave -> electrical wave
-    def _calc_time_shift(self):
+    def _calc_time_shift(self) -> None:
 
         # electrical wave -> acoustic wave
         system_ir = np.convolve(self._excitation, self._electroacoustic_ir)
@@ -68,34 +74,32 @@ class Hardware:
         # Correction time shift in seconds
         self._correction_time_shift_s = system_ir.shape[0] / 2 / self._f_sampling_hz
 
-        return
-
     # Returns excitation array
     @property
-    def excitation(self):
+    def excitation(self) -> np.ndarray:
 
         return self._excitation
 
     # Returns electroacoustic impulse response
     @property
-    def electroacoustic_ir(self):
+    def electroacoustic_ir(self) -> np.ndarray:
 
         return self._electroacoustic_ir
 
     # Returns sampling frequency in hz
     @property
-    def f_sampling(self):
+    def f_sampling(self) -> float:
 
         return self._f_sampling_hz
 
     # Returns correction time shift in seconds
     @property
-    def correction_time_shift(self):
+    def correction_time_shift(self) -> float:
 
         return self._correction_time_shift_s
 
     # Returns start time of the first sample in seconds
     @property
-    def start_time(self):
+    def start_time(self) -> float:
 
         return self._start_time_s

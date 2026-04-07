@@ -16,8 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Basic libraries
+import logging
 import argparse
+
 import numpy as np
 
 from pybf.io_interfaces import ImageLoader
@@ -109,7 +110,7 @@ def visualize_image_dataset(
             image_z_range=[image_size_z_0, image_size_z_1],
             db_range=db_range,
             scatters_coords_xz=scs_coords_xz,
-            framework="plotly",
+            framework="matplotlib",
             save_fig=save_visualized_images,
             show=show_images,
             path_to_save=save_path,
@@ -117,8 +118,6 @@ def visualize_image_dataset(
 
     # Close the file with beamformed images
     imgLoader.close_file()
-
-    return
 
 
 if __name__ == "__main__":
@@ -173,13 +172,22 @@ if __name__ == "__main__":
         help="Decibels range for log compression of images ",
     )
 
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Increase output verbosity"
+    )
+
     FLAGS, unparsed = parser.parse_known_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if FLAGS.verbose else logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
     # Run main function
     visualize_image_dataset(
-        FLAGS.path_to_img_dataset,
-        FLAGS.save_visualized_images,
-        FLAGS.frames_to_plot,
-        FLAGS.low_res_img_to_plot,
-        FLAGS.db_range,
+        path_to_img_dataset=FLAGS.path_to_img_dataset,
+        save_visualized_images=FLAGS.save_visualized_images,
+        frames_to_plot=FLAGS.frames_to_plot,
+        low_res_img_to_plot=FLAGS.low_res_img_to_plot,
+        db_range=FLAGS.db_range,
     )

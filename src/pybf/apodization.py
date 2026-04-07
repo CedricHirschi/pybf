@@ -1,7 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +18,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Optional
+
 import numpy as np
 
 
 # Calculate 'field of view' receive apodization (or expanding aperture)
 # Output: array with the size of (n_pixels x n_elements)
 def calc_fov_receive_apodization(
-    num_of_elements,
-    elements_coords,
-    pixels_coords,
-    alpha_fov_degree=45,
-    channel_reduction=None,
-):
+    num_of_elements: int,
+    elements_coords: np.ndarray,
+    pixels_coords: np.ndarray,
+    alpha_fov_degree: float = 45,
+    channel_reduction: Optional[int] = None,
+) -> np.ndarray:
 
     n_elements = elements_coords.shape[1]
     n_pixels = pixels_coords.shape[1]

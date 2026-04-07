@@ -1,7 +1,10 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Authors: Sergei Vostrikov and Pascal Hager, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Pascal Hager, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +26,13 @@ from scipy import signal as ss
 # Demodulate Decimate (real - > complex IQ (or baseband signal) decimated)
 # Each column in input data represents the time sample,
 # Each row stands for channel
-def demodulate_decimate(data, f_sampling, f_carrier, decimation_factor, koff=0):
+def demodulate_decimate(
+    data: np.ndarray,
+    f_sampling: float,
+    f_carrier: float,
+    decimation_factor: int,
+    koff: float = 0,
+) -> np.ndarray:
 
     # Create time array for the input samples
     time_arr = (np.arange(0, data.shape[1], dtype=np.float32) + koff) / f_sampling
@@ -47,7 +56,13 @@ def demodulate_decimate(data, f_sampling, f_carrier, decimation_factor, koff=0):
 # Demodulate Decimate (complex IQ decimated -> complex analytical signal (interpolated))
 # Each column in input data represents the time sample,
 # Each row stands for channel
-def interpolate_modulate(data_IQ, f_sampling, f_carrier, interpolation_factor, toff=0):
+def interpolate_modulate(
+    data_IQ: np.ndarray,
+    f_sampling: float,
+    f_carrier: float,
+    interpolation_factor: int,
+    toff: float = 0,
+) -> np.ndarray:
 
     # Calculate the sampling frequency after interpolation
     f_interpolated = f_sampling * interpolation_factor
@@ -56,6 +71,7 @@ def interpolate_modulate(data_IQ, f_sampling, f_carrier, interpolation_factor, t
     data_IQ_interp = ss.resample(
         data_IQ, data_IQ.shape[1] * interpolation_factor, axis=-1
     )
+    assert isinstance(data_IQ_interp, np.ndarray)
 
     # Create time array for the interpolated samples
     time_arr = np.arange(0, data_IQ_interp.shape[1]) / (f_interpolated) + toff
@@ -72,15 +88,19 @@ def interpolate_modulate(data_IQ, f_sampling, f_carrier, interpolation_factor, t
 
 
 # Apply Hilbert transform and then interpolate the data
-def hilbert_interpolate(data_RF, f_sampling, interpolation_factor):
+def hilbert_interpolate(
+    data_RF: np.ndarray, f_sampling: float, interpolation_factor: int
+) -> np.ndarray:
 
     # Hilbert transform
     data_hilbert = ss.hilbert(data_RF, axis=-1)
+    assert isinstance(data_hilbert, np.ndarray)
 
     # Interpolate the data using Fourier method along the columns
     data_hilbert_interp = ss.resample(
         data_hilbert, data_hilbert.shape[1] * interpolation_factor, axis=-1
     )
+    assert isinstance(data_hilbert_interp, np.ndarray)
 
     return data_hilbert_interp
 
@@ -88,8 +108,13 @@ def hilbert_interpolate(data_RF, f_sampling, interpolation_factor):
 # Bandpass filter
 # transition width is the same for both low and high cutoff frequencies
 def filter_band_pass(
-    data, f_sampling, f_low_cutoff, f_high_cutoff, trans_width, n_taps=101
-):
+    data: np.ndarray,
+    f_sampling: float,
+    f_low_cutoff: float,
+    f_high_cutoff: float,
+    trans_width: float,
+    n_taps: int = 101,
+) -> np.ndarray:
     # Make filter
     b = ss.remez(
         n_taps,

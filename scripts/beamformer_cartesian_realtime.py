@@ -17,6 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
+
 # Basic libraries
 import numpy as np
 import time
@@ -65,7 +67,6 @@ class BFCartesianRealTime:
         interpolation_factor,
         image_res,
         img_config_obj,
-        db_range=DB_RANGE_DEFAULT,
         start_time=None,
         correction_time_shift=None,
         alpha_fov_apod=ALPHA_FOV_APOD_ANGLE_DEFAULT,
@@ -74,14 +75,14 @@ class BFCartesianRealTime:
         picmus_dataset=False,
         channel_reduction=None,
         is_inherited=False,
-        do_print=False,
-        max_samples=None,
     ):
+        self.log = logging.getLogger(self.__class__.__name__)
+
         # 1 Specify transducer object
         self._transducer = transducer_obj
 
         # 2 Specify image settings
-        lateral_pixel_density = LATERAL_PIXEL_DENSITY_DEFAULT
+        # lateral_pixel_density = LATERAL_PIXEL_DENSITY_DEFAULT
         self._img_config = img_config_obj
 
         # Calculate pixels coordinate based on desired resolution
@@ -91,15 +92,14 @@ class BFCartesianRealTime:
         )
 
         # 3 Precalculate delays
-        print("Delays precalculation...")
+        self.log.debug("Delays precalculation...")
         self._tx_strategy = tx_strategy
         self._rx_delays, self._tx_delays = calc_propagation_delays(
             self._tx_strategy,
-            self._transducer.num_of_elements,
             self._transducer.elements_coords,
             self._pixels_coords,
             self._transducer.speed_of_sound,
-            simulation_flag=picmus_dataset,
+            picmus_dataset,
         )
 
         # Calculate final sampling rate for preprocessed data
@@ -136,7 +136,7 @@ class BFCartesianRealTime:
 
         # 4 Calculate Apodization
         if is_inherited is False:
-            print("Apodization precalculation...")
+            self.log.debug("Apodization precalculation...")
             self._apod = calc_fov_receive_apodization(
                 int(self._transducer.num_of_elements),
                 self._transducer.elements_coords,
@@ -183,6 +183,12 @@ class BFCartesianRealTime:
                 rf_data_filt, self._f_sampling, self._interpolation_factor
             )
 
+        else:
+            raise ValueError(
+                "Envelope detector type %s is not supported. "
+                "Available types: %s" % (self._envelope_detector, ["I_Q", "hilbert"])
+            )
+
         return rf_data_proc
 
     def beamform(self, rf_data, core_type="numpy", do_print=False):
@@ -192,10 +198,8 @@ class BFCartesianRealTime:
                 "Available cores: %s" % (core_type, list(bf_cores.keys()))
             )
 
-        if do_print:
-            print("Beamforming...")
-            print(" ")
-            start_time = time.time()
+        self.log.debug("Beamforming...")
+        start_time = time.time()
 
         acqs_to_process = [x for x in range(self._tx_delays_samples.shape[0])]
 
@@ -213,7 +217,7 @@ class BFCartesianRealTime:
         elif len(rf_data.shape) == 3 and len(acqs_to_process) == rf_data.shape[0]:
             rf_data_reshaped = rf_data
         else:
-            print("Input data shape ", rf_data.shape, " is incorrect.")
+            raise ValueError(f"Input data shape {rf_data.shape} is incorrect.")
 
         # Iterate over acquisitions
         for i in acqs_to_process:
@@ -234,7 +238,6 @@ class BFCartesianRealTime:
         # Coherent compounding
         das_out_compound = np.sum(das_out[acqs_to_process, :], axis=0)
 
-        if do_print:
-            print("Time of execution: %s seconds" % (time.time() - start_time))
+        self.log.debug("Time of execution: %s seconds" % (time.time() - start_time))
 
         return das_out_compound.reshape(self._image_res[1], self._image_res[0])

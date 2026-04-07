@@ -1,7 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,24 +18,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import numpy as np
+import logging
+from typing import Optional
 
-SPEED_OF_SOUND = 1540  # meters per second
+import numpy as np
 
 
 class Transducer:
     def __init__(
         self,
-        num_of_x_elements=1,
-        num_of_y_elements=1,
-        x_pitch=0,
-        y_pitch=0,
-        x_width=0,
-        y_width=0,
-        f_central_hz=0,
-        bandwidth_hz=0,
-        active_elements=None,
+        num_of_x_elements: int = 1,
+        num_of_y_elements: int = 1,
+        x_pitch: float = 0,
+        y_pitch: float = 0,
+        x_width: float = 0,
+        y_width: float = 0,
+        f_central_hz: float = 0,
+        bandwidth_hz: float = 0,
+        active_elements: Optional[list[int]] = None,
+        speed_of_sound: float = 1540,
     ):
+        self.log = logging.getLogger(__name__)
 
         self._num_of_x_elements = num_of_x_elements
         self._num_of_y_elements = num_of_y_elements
@@ -48,7 +53,7 @@ class Transducer:
         self._f_central_hz = f_central_hz
         self._bandwidth_hz = bandwidth_hz
 
-        self._speed_of_sound = SPEED_OF_SOUND
+        self._speed_of_sound = speed_of_sound
 
         # Calculate X, Y coordinates of transducer elements
         self._calc_elements_coords()
@@ -60,10 +65,8 @@ class Transducer:
         else:
             self._active_elements = None
 
-        return
-
     # Returns x,y coords for the elements of transducer
-    def _calc_elements_coords(self):
+    def _calc_elements_coords(self) -> None:
 
         # Calc x coords
         x_coords = np.arange(0, self._num_of_x_elements) * (self._x_pitch)
@@ -85,16 +88,12 @@ class Transducer:
             np.dstack(np.meshgrid(x_coords, y_coords)).reshape(-1, 2)
         )
 
-        return
-
     # Set the active elements of the transducer by list of indices
     # Attention: elements numeration starts from 0
-    def set_active_elements(self, active_elements, do_print=False):
+    def set_active_elements(self, active_elements: list[int]) -> None:
 
         self._active_elements = np.array(active_elements, dtype=int)
-
-        if do_print:
-            print("Transducer: number of active elements = ", len(active_elements))
+        self.log.debug(f"number of active elements = {len(active_elements)}")
 
         # Calculate X, Y coordinates of transducer elements
         self._calc_elements_coords()
@@ -105,40 +104,38 @@ class Transducer:
         # Update coordinates of activated elements
         self._elements_coords = self._elements_coords[:, self._active_elements]
 
-        return
-
     # Returns transducers elements coordinates
     @property
-    def elements_coords(self):
+    def elements_coords(self) -> np.ndarray:
 
         return self._elements_coords
 
     # Returns number of transducers elements
     @property
-    def num_of_elements(self):
+    def num_of_elements(self) -> int:
 
         return self._num_of_elements
 
     # Returns indices of active transducer elements
     @property
-    def active_elements(self):
+    def active_elements(self) -> Optional[np.ndarray]:
 
         return self._active_elements
 
     # Returns central frequency
     @property
-    def f_central_hz(self):
+    def f_central_hz(self) -> float:
 
         return self._f_central_hz
 
     # Returns bandwidth
     @property
-    def bandwidth_hz(self):
+    def bandwidth_hz(self) -> float:
 
         return self._bandwidth_hz
 
     # Returns speed of sound
     @property
-    def speed_of_sound(self):
+    def speed_of_sound(self) -> float:
 
         return self._speed_of_sound

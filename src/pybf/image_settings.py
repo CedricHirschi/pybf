@@ -1,7 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +18,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Optional
+
 import numpy as np
+
+from .transducer import Transducer
 
 
 class ImageSettings:
     def __init__(
         self,
-        image_size_x_0,
-        image_size_x_1,
-        image_size_z_0,
-        image_size_z_1,
-        lateral_pixel_density,
-        transducer_obj,
+        image_size_x_0: float,
+        image_size_x_1: float,
+        image_size_z_0: float,
+        image_size_z_1: float,
+        lateral_pixel_density: float,
+        transducer_obj: Transducer,
     ):
 
         # Copy transducers params
@@ -52,14 +58,13 @@ class ImageSettings:
 
         return
 
-    def _calc_min_axial_resolution(self):
+    def _calc_min_axial_resolution(self) -> None:
 
         self._axial_res_min = (
             1 / self._transducer.bandwidth_hz * self._transducer.speed_of_sound
         )
-        return
 
-    def _calc_high_res(self):
+    def _calc_high_res(self) -> tuple[int, int]:
 
         # Calculate number of x pixels
         n_x = np.round(
@@ -75,7 +80,9 @@ class ImageSettings:
 
         return self._high_resolution
 
-    def get_pixels_coords(self, x_res=None, z_res=None):
+    def get_pixels_coords(
+        self, x_res: Optional[int] = None, z_res: Optional[int] = None
+    ) -> np.ndarray:
 
         if x_res is not None:
             n_x = x_res
@@ -105,5 +112,5 @@ class ImageSettings:
 
         return self._pixels_coords
 
-    def get_max_resolution(self):
+    def get_max_resolution(self) -> tuple[int, int]:
         return self._high_resolution

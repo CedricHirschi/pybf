@@ -4,7 +4,7 @@ import time
 
 # Import pybf modules
 
-from pybf.scripts.beamformer_cartesian_realtime import BFCartesianRealTime
+from beamformer_cartesian_realtime import BFCartesianRealTime
 
 # Constants
 LATERAL_PIXEL_DENSITY_DEFAULT = 5

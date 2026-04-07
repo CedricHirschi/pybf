@@ -1,7 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,19 +18,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
+
 import numpy as np
+
+
+log = logging.getLogger(__name__)
 
 
 # Calculate propagation delays from the transducer to the pixel point and back
 def calc_propagation_delays(
-    tx_strategy,
-    num_of_elements,
-    elements_coords,
-    pixels_coords,
-    speed_of_sound,
-    simulation_flag=False,
-    do_print=False,
-):
+    tx_strategy: list[str],
+    elements_coords: np.ndarray,
+    pixels_coords: np.ndarray,
+    speed_of_sound: float,
+    simulation_flag: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
 
     # Calculate the number of channels for given data
     # num_of_elements = elements_coords.shape[1]
@@ -37,10 +42,9 @@ def calc_propagation_delays(
     # The script can calculate the delays in both 2D and 3D
     # The input parameters should be aligned in dimensions
     if elements_coords.shape[0] != pixels_coords.shape[0]:
-        print(
-            "Error: Transducer element coordinates and pixel coordinates have different dimensions"
+        raise ValueError(
+            "Transducer element coordinates and pixel coordinates have different dimensions"
         )
-        return
 
     # Parametrised name of TX strategy
     # E.g. 'PW_3_12'
@@ -52,11 +56,9 @@ def calc_propagation_delays(
         num_of_pw = int(tx_strat_name[1])
         max_angle = float(tx_strat_name[2])
 
-        # Print info
-        if do_print:
-            print("TX strategy: plane waves")
-            print("Number of plane waves: ", num_of_pw)
-            print("Maximum angle: ", max_angle, "°")
+        log.debug("TX strategy: plane waves")
+        log.debug(f"Number of plane waves: {num_of_pw}")
+        log.debug(f"Maximum angle: {max_angle}°")
 
         # Calculate angles
         pw_angles_rad = np.radians(np.linspace(-max_angle, max_angle, num_of_pw))
@@ -116,7 +118,9 @@ def calc_propagation_delays(
 # NOTE: This function is more general than
 # calc_dist_from_pw_line_to_point_2 but there is an error in angle's signs
 # TBD: find a bug with angle signs
-def calc_dist_from_pw_line_to_point(pw_angle, point_coord_x_z, max_x_coord):
+def calc_dist_from_pw_line_to_point(
+    pw_angle: np.ndarray, point_coord_x_z: np.ndarray, max_x_coord: float
+) -> np.ndarray:
 
     # An equation of line on a xz plane is ax + bxz + c = 0
     # An equation for PW is z = (x + sgn(-alpha) * xl/2) * tg(-alpha)
@@ -147,7 +151,9 @@ def calc_dist_from_pw_line_to_point(pw_angle, point_coord_x_z, max_x_coord):
 # Input: pw_angles of size (n_angles X 1)
 # point_coord_x_z of size (2 x n_points)
 # Output: (n_angles x n_points)
-def calc_dist_from_pw_line_to_point_2(pw_angle, point_coord_x_z, max_x_coord):
+def calc_dist_from_pw_line_to_point_2(
+    pw_angle: np.ndarray, point_coord_x_z: np.ndarray, max_x_coord: float
+) -> np.ndarray:
 
     # Distance equalss z * cos(alpha) + (x_0 - x) * sin(alpha)
 
@@ -174,7 +180,9 @@ def calc_dist_from_pw_line_to_point_2(pw_angle, point_coord_x_z, max_x_coord):
 # Input:  points_coords (n_dim x n_points)
 # elements_coords (n_dim x n_points)
 # Output: distance (n_elements x n_points)
-def calc_dist_from_point_to_element(elements_coords, points_coords):
+def calc_dist_from_point_to_element(
+    elements_coords: np.ndarray, points_coords: np.ndarray
+) -> np.ndarray:
 
     n_elements = elements_coords.shape[1]
     n_points = points_coords.shape[1]
@@ -193,7 +201,12 @@ def calc_dist_from_point_to_element(elements_coords, points_coords):
     return distance
 
 
-def convert_time_to_samples(array_t, f_sampling, start_offset_s, correction_time_s):
+def convert_time_to_samples(
+    array_t: np.ndarray,
+    f_sampling: float,
+    start_offset_s: float,
+    correction_time_s: float,
+) -> np.ndarray:
 
     # 1 Substract start offset
     # 2 Sum correction time

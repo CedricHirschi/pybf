@@ -1,8 +1,10 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
-        Wolfgang Boettcher, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Wolfgang Boettcher, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -197,12 +199,12 @@ def plot_image(
         if (image_x_range is not None) and (image_z_range is not None):
             ax.imshow(
                 data,
-                cmap=colormaps["Grays"],
+                cmap=colormaps["Grays_r"],
                 origin="lower",
                 extent=image_x_range + image_z_range,
             )
         else:
-            ax.imshow(data, cmap=colormaps["Grays"], origin="lower")
+            ax.imshow(data, cmap=colormaps["Grays_r"], origin="lower")
 
         ax.set_xlabel("X, m")
         ax.set_ylabel("Z, m")
@@ -387,7 +389,7 @@ class LivePlot:
         if (self.image_x_range is not None) and (self.image_z_range is not None):
             self._image_obj = self._ax.imshow(
                 np.zeros(self.data_shape),
-                cmap=colormaps["Grays"],
+                cmap=colormaps["Grays_r"],
                 origin="lower",
                 aspect="auto",
                 extent=self.image_x_range + self.image_z_range,
@@ -395,7 +397,7 @@ class LivePlot:
         else:
             self._image_obj = self._ax.imshow(
                 np.zeros(self.data_shape),
-                cmap=colormaps["Grays"],
+                cmap=colormaps["Grays_r"],
                 origin="lower",
                 aspect="auto",
             )

@@ -1,8 +1,9 @@
 """
-Copyright (C) 2020 ETH Zurich. All rights reserved.
+Copyright (C) 2025 ETH Zurich. All rights reserved.
 
-Author: Sergei Vostrikov, ETH Zurich
-        Cedric Hirschi, ETH Zurich
+Authors:
+    - Sergei Vostrikov, ETH Zurich
+    - Cedric Hirschi, ETH Zurich
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,8 +18,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Optional
+
 import numpy as np
 from numba import jit, prange
+import warp as wp
 
 try:
     import cupy as cp
@@ -26,8 +30,6 @@ try:
     HAS_CUPY = True
 except ImportError:
     HAS_CUPY = False
-
-import warp as wp
 
 
 # Initialize Warp
@@ -39,7 +41,11 @@ wp.init()
 # delays_idx of shape (n_modes x n_elements x n_points)
 # apod_weights of shape (n_points x n_elements)
 @jit(nopython=True, parallel=True, nogil=True)
-def delay_and_sum_numba(rf_data_in, delays_idx, apod_weights=None):
+def delay_and_sum_numba(
+    rf_data_in: np.ndarray,
+    delays_idx: np.ndarray,
+    apod_weights: Optional[np.ndarray] = None,
+) -> np.ndarray:
     n_elements = rf_data_in.shape[1]
     n_modes = delays_idx.shape[0]
     n_points = delays_idx.shape[2]
@@ -65,7 +71,11 @@ def delay_and_sum_numba(rf_data_in, delays_idx, apod_weights=None):
 # Perform delay and sum operation with numpy
 # Input: rf_data_in of shape (n_samples x n_elements)
 # delays_idx of shape (n_modes x n_elements x n_points)
-def delay_and_sum_numpy(rf_data_in, delays_idx, apod_weights=None):
+def delay_and_sum_numpy(
+    rf_data_in: np.ndarray,
+    delays_idx: np.ndarray,
+    apod_weights: Optional[np.ndarray] = None,
+) -> np.ndarray:
     n_elements = rf_data_in.shape[1]
     n_modes = delays_idx.shape[0]
     n_points = delays_idx.shape[2]
@@ -112,7 +122,11 @@ def delay_and_sum_numpy(rf_data_in, delays_idx, apod_weights=None):
 
 if HAS_CUPY:
 
-    def delay_and_sum_cupy(rf_data_in, delays_idx, apod_weights=None):
+    def delay_and_sum_cupy(
+        rf_data_in: np.ndarray,
+        delays_idx: np.ndarray,
+        apod_weights: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
         """
         GPU-accelerated Delay-and-Sum using CuPy.
 
@@ -180,7 +194,7 @@ def das_warp_kernel(
     n_samples: int,
     n_elements: int,
     use_apo: bool,
-):
+) -> None:
     # Get 2D thread indices
     mode, pt = wp.tid()  # type: ignore
 
@@ -204,7 +218,11 @@ def das_warp_kernel(
     out_imag[mode, pt] = acc_i
 
 
-def delay_and_sum_warp(rf_data_in, delays_idx, apod_weights=None):
+def delay_and_sum_warp(
+    rf_data_in: np.ndarray,
+    delays_idx: np.ndarray,
+    apod_weights: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """
     Warp-accelerated DAS.
 
@@ -213,8 +231,10 @@ def delay_and_sum_warp(rf_data_in, delays_idx, apod_weights=None):
     apod_weights: (n_points, n_elements) float32 on host or None
     """
     # --- host->device
-    rf_real = wp.array(rf_data_in.real.astype(np.float32))
-    rf_imag = wp.array(rf_data_in.imag.astype(np.float32))
+    assert rf_data_in.dtype == np.complex64
+
+    rf_real = wp.array(rf_data_in.astype(np.complex64).real.astype(np.float32))
+    rf_imag = wp.array(rf_data_in.astype(np.complex64).imag.astype(np.float32))
     delays = wp.array(delays_idx.astype(np.int32))
 
     n_modes, n_elements, n_points = delays_idx.shape
@@ -252,4 +272,5 @@ def delay_and_sum_warp(rf_data_in, delays_idx, apod_weights=None):
     # device->host and recombine
     real = out_r.numpy().astype(np.float32)
     imag = out_i.numpy().astype(np.float32)
+
     return (real + 1j * imag).astype(np.complex64)

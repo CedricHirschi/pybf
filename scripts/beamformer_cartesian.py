@@ -33,7 +33,8 @@ from pybf.signal_processing import interpolate_modulate
 from pybf.signal_processing import filter_band_pass
 from pybf.io_interfaces import ImageSaver
 from pybf.bf_cores import delay_and_sum_numba
-from pybf.scripts.visualize_image_dataset import visualize_image_dataset
+
+from visualize_image_dataset import visualize_image_dataset
 
 # Constants
 LATERAL_PIXEL_DENSITY_DEFAULT = 5
@@ -92,11 +93,10 @@ def beamformer_cartesian(
     # 3 Precalculate delays
     print("Delays precalculation...")
     rx_delays, tx_delays = calc_propagation_delays(
-        dl.tx_strategy,
-        dl.transducer.num_of_elements,
-        dl.transducer.elements_coords,
-        pixels_coords,
-        dl.transducer.speed_of_sound,
+        tx_strategy=dl.tx_strategy,
+        elements_coords=dl.transducer.elements_coords,
+        pixels_coords=pixels_coords,
+        speed_of_sound=dl.transducer.speed_of_sound,
         simulation_flag=dl.simulation_flag,
     )
 
@@ -450,12 +450,12 @@ if __name__ == "__main__":
 
     # Run main
     beamformer_cartesian(
-        FLAGS.path_to_rf_dataset,
-        FLAGS.decimation_factor,
-        FLAGS.interpolation_factor,
-        FLAGS.image_resolution,
-        FLAGS.image_x_range,
-        FLAGS.image_z_range,
+        path_to_rf_dataset=FLAGS.path_to_rf_dataset,
+        decimation_factor=FLAGS.decimation_factor,
+        interpolation_factor=FLAGS.interpolation_factor,
+        image_res=FLAGS.image_resolution,
+        image_x_range=FLAGS.image_x_range,
+        image_z_range=FLAGS.image_z_range,
         save_images_to_hdf5=FLAGS.save_images_to_hdf5,
         save_lri_to_hdf5=FLAGS.save_lri_to_hdf5,
         save_visualized_images=FLAGS.save_visualized_images,
